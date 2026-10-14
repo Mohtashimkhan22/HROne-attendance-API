@@ -1,83 +1,93 @@
 # HROne Attendance & Analytics API
 
-A backend attendance management and analytics API built with FastAPI, Python 3.11+, and MongoDB. It supports employee management, attendance punch-in and punch-out, manual attendance regularization with audit history, and department-level analytics.
+A backend attendance management and analytics API built with FastAPI, Python 3.11+, and MongoDB. The application supports employee management, attendance tracking, manual attendance regularization, audit history, and department-level analytics.
 
-All application code is contained in app/main.py.
+All application code is contained in `app/main.py`.
 
 ## Features
-- Employee management: Create employees and retrieve paginated, department-filtered employee lists.
-- Attendance tracking: Record punch-ins and punch-outs, including overnight shifts.
-- Business rules: Calculate late minutes, work hours, overtime, and half-day status.
-- Attendance regularization: Correct attendance records while preserving an append-only audit history.
-- Analytics: Generate monthly employee summaries, department summaries, late-comer rankings, and daily department trends with seven-day moving averages.
-- Concurrency safety: Prevent duplicate punch-ins and punch-outs and preserve audit history during concurrent corrections.
-- Database performance: Create indexes at startup and provide execution statistics through the explain endpoint.
+
+- **Employee Management:** Create employees and retrieve paginated, department-filtered employee lists.
+- **Attendance Tracking:** Record punch-ins and punch-outs, including overnight shifts.
+- **Business Rules:** Calculate late minutes, working hours, overtime, and half-day status.
+- **Attendance Regularization:** Correct attendance records while maintaining an append-only audit history.
+- **Employee Analytics:** Generate monthly attendance summaries for individual employees.
+- **Department Analytics:** Retrieve department-level statistics and daily attendance trends.
+- **Late Attendance Leaderboard:** Rank employees based on late attendance.
+- **Moving Averages:** Calculate seven-day moving averages for department trends.
+- **Concurrency Safety:** Prevent duplicate punch-ins and punch-outs and preserve audit history during concurrent corrections.
+- **Database Optimization:** Create required MongoDB indexes at startup and expose query execution statistics.
+- **API Documentation:** Interactive Swagger UI and ReDoc documentation.
+- **Automated Testing:** Pytest-based test suite covering application functionality and business rules.
 
 ## Tech Stack
-Python 3.11+
-FastAPI
-MongoDB 6.0+
-PyMongo or Motor, as configured in the implementation
-Uvicorn
-Pytest
 
-# Prerequisites
+- Python 3.11+
+- FastAPI
+- MongoDB 6.0+
+- PyMongo or Motor, as configured
+- Uvicorn
+- Pytest
 
-Ensure Python 3.11+ and MongoDB 6.0+ are installed and running.
+## Prerequisites
 
-## Setup and Run
-### 1. Clone the repository
+Ensure the following are installed:
+
+- Python 3.11 or later
+- MongoDB 6.0 or later
+- Git
+- pip or uv
+
+## Getting Started
+
+### 1. Clone the Repository
+
+```bash
 git clone https://github.com/Mohtashimkhan22/HROne-attendance-API.git
 cd HROne-attendance-API
 
 
-Replace the placeholders with your Git repository URL and directory name.
-
-### 2. Install dependencies
+2. Install Dependencies
+Using pip:
 pip install -r requirements.txt
 
 
 Alternatively, if the project is configured for uv:
-
 uv sync
 
-### 3. Configure environment variables
 
-Set the MongoDB connection URI and database name.
-
-Linux/macOS:
-
+3. Configure Environment Variables
+The application requires MONGO_URI. The database name defaults to attendance_db if MONGO_DB is not specified.
+Linux / macOS
 export MONGO_URI="mongodb://localhost:27017"
 export MONGO_DB="attendance_db"
 
 
-Windows PowerShell:
-
+Windows PowerShell
 $env:MONGO_URI = "mongodb://localhost:27017"
 $env:MONGO_DB = "attendance_db"
 
 
-MONGO_URI is required. MONGO_DB defaults to attendance_db if not specified.
+You can also configure these variables in a .env file:
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB=attendance_db
 
-A local .env file is also supported. Actual environment variables take precedence over values loaded from .env.
 
-### 4. Start the application
+Actual environment variables take precedence over values loaded from .env.
+Ensure MongoDB is running and accessible before starting the application.
+4. Start the Application
+Run the following command from the repository root:
 uvicorn app.main:app --port 8000
 
 
-The application initializes the required database indexes at startup. It is designed to work with the existing seeded dataset without requiring the dataset to be recreated.
-
-## API Documentation
-
-Once the server is running:
-
-Health check: GET http://localhost:8000/health
-Interactive Swagger documentation: http://localhost:8000/docs
-ReDoc documentation: http://localhost:8000/redoc
-
+The application initializes the required database indexes at startup and is designed to work with the existing seeded dataset without recreating it.
+API Documentation
+Once the server is running, access the following endpoints:
+- Health Check: http://localhost:8000/health
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+Swagger UI allows you to explore endpoints, inspect request and response schemas, and execute API requests interactively.
 The health endpoint checks MongoDB connectivity and returns an appropriate HTTP status.
-
-## API Overview
+API Endpoints
 Method	Endpoint	Description
 POST	/employees	Create an employee
 GET	/employees	List employees with filtering and pagination
@@ -91,61 +101,64 @@ GET	/analytics/leaderboard/late	Rank employees by late attendance
 GET	/analytics/departments/{department}/trend	Retrieve daily department trends
 GET	/admin/explain/{endpoint}	Inspect query execution statistics
 GET	/health	Check application and database availability
-
 For exact request schemas, query parameters, response fields, and status codes, refer to the interactive Swagger documentation at /docs.
-
-## Business Rules and Data Handling
-All API instants use integer epoch milliseconds; MongoDB stores timestamps as BSON UTC datetimes.
-Calendar dates, month values, and shift times follow IST conventions.
-Punch-in and punch-out calculations account for overnight shifts.
-Late arrival, overtime, work hours, and half-day status follow the specified business rules.
-Presence calculations distinguish between present statuses and ABSENT or LEAVE.
-Attendance history records manual corrections, including the actor, timestamp, reason, and changed field values.
-List endpoints support pagination, with page numbering starting at 1 and a maximum page size of 100.
-Employee attendance is identified by emp_code and date; MongoDB _id values are not exposed through the API.
-
-## MongoDB Indexing and Analytics
-
-Required indexes are created idempotently during application startup.
-
-Analytics are implemented using MongoDB aggregation pipelines rather than fetching attendance records for Python-side aggregation. The explain endpoint exposes executionStats for the supported query types:
-
-attendance_list
-employee_monthly
-department_summary
-late_leaderboard
-department_trend
-
-These plans can be used to verify index usage and identify expensive database operations.
-
-## Testing
-
-Run the test suite with:
-
+Business Rules and Data Handling
+Timestamp and Date Handling
+- API instants use integer epoch milliseconds.
+- MongoDB stores timestamps as BSON UTC datetimes.
+- Calendar dates, month values, and shift times follow Indian Standard Time (IST) conventions.
+- Attendance records are identified by emp_code and date.
+- MongoDB _id values are not exposed through the API.
+Attendance Calculations
+The application supports:
+- Late arrival calculations in minutes.
+- Total working hours.
+- Overtime calculations.
+- Half-day attendance status.
+- Presence calculations that distinguish present statuses from ABSENT and LEAVE.
+- Punch-in and punch-out handling for overnight shifts.
+All calculations follow the business rules implemented in the application.
+Attendance Regularization and Audit History
+Attendance corrections preserve audit information, including:
+- The actor performing the correction.
+- The correction timestamp.
+- The reason for the correction.
+- The affected fields and their changed values.
+The audit history is designed to be append-only. Concurrent regularization operations must preserve existing audit entries and prevent lost updates.
+Pagination
+List endpoints support pagination with the following conventions:
+- Page numbering starts at 1.
+- Maximum page size is 100.
+- Employee lists support department-based filtering.
+MongoDB Indexing and Analytics
+The application creates the required MongoDB indexes idempotently during startup.
+Analytics are implemented using MongoDB aggregation pipelines rather than fetching complete attendance datasets into Python for application-side aggregation.
+Supported query types for execution-plan inspection include:
+- attendance_list
+- employee_monthly
+- department_summary
+- late_leaderboard
+- department_trend
+The explain endpoint exposes MongoDB executionStats for supported query types. These statistics help verify index usage, inspect documents examined, and identify expensive database operations.
+Testing
+Run the test suite from the repository root:
 pytest -q
 
 
-### Local test result: 30 tests passed.
-
-The tests write to the database configured through MONGO_DB. Use a dedicated, disposable test database to avoid modifying development or production data.
-
-## Performance Validation
-
-The implementation was tested locally against a seeded dataset containing approximately 500 employees and 100,000 attendance records.
-
-Observed results:
-
-Explain plans used IXSCAN without COLLSCAN for the tested query patterns.
-The department trend query over a 92-day period took approximately 50 ms in the local test environment.
-
-These figures are environment-specific observations, not guaranteed production performance benchmarks.
-
-## Known Limitations
-The application was tested against a single MongoDB instance. Hosted and sharded MongoDB deployments have not been verified.
-Startup currently uses FastAPI's @app.on_event lifecycle API, which produces a deprecation warning but works in the tested environment.
-
-## Project Structure
-.
+Test Results
+Recorded local test result: 30 tests passed.
+The tests use the database configured through MONGO_DB. Configure a dedicated, disposable test database before running the suite to avoid modifying development or production data.
+Performance Validation
+The implementation was tested locally against a seeded dataset containing approximately:
+- 500 employees
+- 100,000 attendance records
+Recorded observations:
+Validation	Observed Result
+Tested query execution plans	IXSCAN used without COLLSCAN
+Department trend query over 92 days	Approximately 50 ms
+These results reflect the local test environment and tested query patterns. They are not guaranteed production performance benchmarks. Actual performance depends on hardware, database configuration, indexes, dataset distribution, and concurrent workload.
+Project Structure
+HROne-attendance-API/
 ├── app/
 │   └── main.py
 ├── requirements.txt
@@ -153,6 +166,26 @@ Startup currently uses FastAPI's @app.on_event lifecycle API, which produces a d
 ├── REVIEW.md
 └── DECISIONS.md
 
-## Implementation Notes
 
-This project was developed for the HROne Software Engineer assignment (Contract v2.0). The implementation focuses on correctness of attendance business rules, concurrency safety, aggregation-based analytics, and index-backed query performance.
+Key Files
+- app/main.py — Contains the FastAPI application and backend implementation.
+- requirements.txt — Lists Python dependencies.
+- README.md — Project documentation and setup instructions.
+- REVIEW.md — Implementation review notes.
+- DECISIONS.md — Technical decisions and their rationale.
+Known Limitations
+- The application has been tested against a single MongoDB instance. Hosted and sharded MongoDB deployments have not been verified.
+- Startup currently uses FastAPI's @app.on_event lifecycle API, which produces a deprecation warning in newer FastAPI versions.
+- Performance measurements are based on the local test environment and should be revalidated under production-like workloads.
+Implementation Notes
+This project was developed for the HROne Software Engineer assignment (Contract v2.0).
+The implementation focuses on:
+- Correct attendance calculations and business-rule enforcement.
+- Reliable handling of punch-ins, punch-outs, and overnight shifts.
+- Concurrency-safe attendance operations and regularization.
+- Append-only audit history for manual corrections.
+- Aggregation-based employee and department analytics.
+- Index-backed MongoDB query performance.
+- Automated testing and API documentation.
+License
+No license has been specified in this repository documentation. Add a LICENSE file if you intend to distribute or reuse the project publicly.
